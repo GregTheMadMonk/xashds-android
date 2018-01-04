@@ -3,14 +3,12 @@ import android.view.*;
 import android.content.*;
 import android.graphics.*;
 import java.util.*;
-import android.util.*;
-import org.apache.http.impl.*;
 import android.widget.*;
 
 public class ConsoleView extends View
 {
 	private List<String> strings = new ArrayList();
-	
+
 	private Paint bg = new Paint();
 	private Paint basictext = new Paint();
 	
@@ -20,15 +18,14 @@ public class ConsoleView extends View
 	private int defTextCol = Color.WHITE;
 	
 	private static ConsoleView highlighted = null;
-	
-	private float tx, ty;
+
 	private float h, w;
 	
 	ConsoleView(Context context)
 	{
 		super(context);
-		
-		bg.setColor(Color.BLACK);
+
+		bg.setColor(Color.TRANSPARENT);
 		basictext.setColor(defTextCol);
 	}
 
@@ -41,7 +38,7 @@ public class ConsoleView extends View
 		
 		h = canvas.getHeight();
 		w = canvas.getWidth();
-		
+
 		//paint bg
 		canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bg);
 		
@@ -132,7 +129,6 @@ public class ConsoleView extends View
 			
 			y += deltay;
 		}
-		//canvas.drawText("HelloWorld", 50, 50, basictext);
 		
 		h = y;
 	}
@@ -149,7 +145,7 @@ public class ConsoleView extends View
 		if (isSelected)
 		{
 			defTextCol = Color.WHITE;
-			bg.setColor(Color.BLACK);
+			bg.setColor(Color.TRANSPARENT);
 			isSelected = false;
 			
 			String text = removeColorcodes(strings.get(strings.size()-1));
@@ -235,7 +231,7 @@ public class ConsoleView extends View
 		if (isSelected)
 		{
 			defTextCol = Color.WHITE;
-			bg.setColor(Color.BLACK);
+			bg.setColor(Color.TRANSPARENT);
 			isSelected = false;
 		} else {
 			defTextCol = Color.BLACK;

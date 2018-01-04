@@ -64,7 +64,7 @@ public class DedicatedService extends Service {
         iconRes = R.drawable.logo_wait;
 		
         isStarted = true;
-        game = CommandParser.parseSingleParameter(intent.getStringExtra("argv"), "-game");
+        game = CommandParser.parseSingleParameter(cmdArgs, "-game");
         if (game == "") game = "hl";
         updateNotification(DedicatedStatics.MESS_BINARIES_STARTING);
 
@@ -91,7 +91,8 @@ public class DedicatedService extends Service {
 				iconRes = R.drawable.logo_error;
 				canConnect = false;
 			}
-		
+
+			canConnect = canConnect && isRunning() && isStarted;
 
 		if (DedicatedStatics.launched != null) { 
 			DedicatedStatics.launched.printLog(str);
@@ -119,6 +120,7 @@ public class DedicatedService extends Service {
 		canConnect = false;
 		if (DedicatedStatics.launched != null) DedicatedStatics.launched.setCanConnect(canConnect);
 		printText(DedicatedStatics.MESS_SERVICE_KILLED);
+		if (DedicatedStatics.launched != null) DedicatedStatics.launched.printInfo();
 	}
 
     @Override
@@ -140,6 +142,7 @@ public class DedicatedService extends Service {
                 process = null;
                 killAll(filesDir+"/qemu-i386-static");
                 killAll(filesDir+"/tracker");
+				killAll(filesDir+"/is3g1g");
                 killAll(filesDir+"/ubt");
                 printText("\nKilling existing server!\n");
                 return;

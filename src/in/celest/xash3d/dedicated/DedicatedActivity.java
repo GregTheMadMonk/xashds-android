@@ -1,90 +1,39 @@
 package in.celest.xash3d.dedicated;
 
-import android.app.Activity;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.content.Intent;
-import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
-import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
-import android.widget.ScrollView;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.LinearLayout;
-import android.widget.LinearLayout.LayoutParams;
-import android.widget.Button;
-import android.widget.Switch;
-import android.widget.TextView;
-import android.widget.ArrayAdapter;
-import android.widget.AdapterView;
-import android.widget.Spinner;
-
-//import android.content.Context;
-import android.content.ComponentName;
-import android.content.pm.PackageManager;
-import android.content.SharedPreferences;
-import android.content.res.AssetManager;
-import android.widget.Toast;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.List;
-import java.util.ArrayList;
-import android.os.Environment;
-import java.util.*;
-import android.view.View.*;
+import android.app.*;
+import android.content.*;
+import android.content.pm.*;
+import android.content.res.*;
 import android.graphics.*;
+import android.os.*;
+import android.view.*;
+import android.view.inputmethod.*;
+import android.widget.*;
+import android.widget.LinearLayout.*;
 import java.io.*;
 import java.net.*;
+import java.util.*;
+
+import android.os.Process;
 
 public class DedicatedActivity extends Activity {
 	//views for launcher screen
-	static EditText cmdArgs;
-	static EditText baseDir;
 	static AutoCompleteTextView cmdLine;
 	static LinearLayout output;
 	static ScrollView scroll;
-	static Spinner translatorSelector;
-	static Button startButton;
-	//views for server master screen
-	static EditText modDir;
-	static EditText serverDlls;
-	static EditText serverMap;
-	static EditText rconPass;
-	static Button 	launchXash;
-	static Switch devBox;
-	static Switch conoleBox;
-	static Switch logBox;
-	static Switch deathmatchSwitch;
-	static Switch lanSwitch;
-	static SharedPreferences mPref;
-	static Process process = null;
+	private Button startButton;
+	private Button launchXash;
+
+	private MenuItem launchi = null;
+
 	static String filesDir;
-	static String translator = "qemu";
 	static boolean isScrolling;
 
-	static String argsString;
-	static String gamePath;
-
-	static boolean isDev = false;
-	
 	static boolean isNewBinary = false;
 
 	static LayoutParams buttonParams;
 
 	static boolean isRunned = false;
-	static boolean tab = true;
 	
 	static boolean 	autostarted;
 	static boolean 	autolaunch;
@@ -96,7 +45,13 @@ public class DedicatedActivity extends Activity {
 	
 	static Bitmap 	gameIcon = null;
 
-	private MenuItem launcherItem;
+	private final int MITEMID_CLEAR			= 1;
+	private final int MITEMID_REFRESH 		= 2;
+	private final int MITEMID_ABOUT 		= 3;
+	private final int MITEMID_SCUT 			= 4;
+	private final int MITEMID_START 		= 5;
+	private final int MITEMID_JOIN 			= 6;
+	private final int MITEMID_SETTINGS		= 7;
 
 	private static String[] commands =
 			{
@@ -123,15 +78,20 @@ public class DedicatedActivity extends Activity {
         super.onCreate(savedInstanceState);
 
 		buttonParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-		buttonParams.gravity = 5;
+		buttonParams.gravity = Gravity.RIGHT;
 
 		isRunned = DedicatedService.isStarted;
 
 		if (DedicatedStatics.launched != null) DedicatedStatics.launched.finish();
 		DedicatedStatics.launched = this;
 
-		if (tab) initLauncher();
-		else initMaster();
+		try { initLauncher(); }
+		catch (Exception e)
+		{
+			Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show();
+		}
+
+		unpackAssets();
 		
 		if(getIntent().getBooleanExtra("autostart", false))
 		{
@@ -152,7 +112,7 @@ public class DedicatedActivity extends Activity {
 		}
 	}
 
-    private String[] listTranslators()
+    public static String[] listTranslators()
     {
 		try
 		{
@@ -171,7 +131,7 @@ public class DedicatedActivity extends Activity {
 				if(f.exists())
 					list2.add(s);
 			}
-
+	
 			return list2.toArray(new String[list2.size()]);
 		}
 		catch(Exception e)
@@ -183,12 +143,10 @@ public class DedicatedActivity extends Activity {
 
 	private void printText(String str)
 	{
-		//TextView line = new TextView(this);
-		//line.setText(str);
 		ConsoleView line = new ConsoleView(this);
 		line.addString(str);
 		line.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		if(output.getChildCount() > 1024)
+		if(DedicatedStatics.getMaxLogLength(this) != 0) if(output.getChildCount() > DedicatedStatics.getMaxLogLength(this)-1)
 			output.removeViewAt(0);
 
 		output.addView(line);
@@ -201,7 +159,6 @@ public class DedicatedActivity extends Activity {
 			}
 		}, 200);
 		isScrolling = true;
-		//croll.fullScroll(ScrollView.FOCUS_DOWN);
 	}
 
 	public void printLog(String strin)
@@ -217,86 +174,33 @@ public class DedicatedActivity extends Activity {
 		runOnUiThread(new OutputCallback(strin));
 	}
 
-	private void loadSettings()
-	{
-		mPref = getSharedPreferences("dedicated", 0);
-		argsString = mPref.getString("argv","-dev 5 -dll dlls/hl.dll");
-		cmdArgs.setText(argsString);
-		gamePath = mPref.getString("basedir","/sdcard/xash");
-		isNewBinary = mPref.getBoolean("newxash", false);
-		baseDir.setText(gamePath);
-		if (translatorSelector != null)
-			if (mPref.getInt("translator", 0) < translatorSelector.getCount()) translatorSelector.setSelection(mPref.getInt("translator", 1));
-		DedicatedStatics.chstr(isNewBinary);
-	}
-
-	private void pushLauncherSettings() 
-	{
-		argsString = cmdArgs.getText().toString();
-		gamePath = baseDir.getText().toString();
-	}
-
-	private void pushMasterSettings()
-	{
-
-		argsString = makeMasterArgs();
-	}
-
-	private void saveSettings() 
-	{
-		SharedPreferences.Editor editor = mPref.edit();
-		editor.putString("argv", argsString);
-		editor.putString("basedir", gamePath);
-		editor.putBoolean("newxash", isNewBinary);
-		if (translatorSelector != null) editor.putInt("translator", translatorSelector.getSelectedItemPosition());
-		try {
-			editor.putInt("lastversion", getPackageManager().getPackageInfo(getPackageName(), 0).versionCode);
-		} catch (Exception e) {}
-		editor.commit();
-		editor.apply();
-		printText("Settings saved!");
-	}
-
+	//Launcher initialization
+	//Called on activity start
 	private void initLauncher()
 	{
-		tab = true;
 		setTitle(R.string.launcher_head);
 
 		filesDir = getApplicationContext().getFilesDir().getPath();
-		// Build layout
-		LinearLayout launcher = new LinearLayout(this);
-		launcher.setOrientation(LinearLayout.VERTICAL);
-		launcher.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
-		TextView titleView = new TextView(this);
-		titleView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		titleView.setText(R.string.l_args);
-		titleView.setTextAppearance(this, android.R.attr.textAppearanceLarge);
-		TextView titleView2 = new TextView(this);
-		titleView2.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		titleView2.setText(R.string.l_path);
-		titleView2.setTextAppearance(this, android.R.attr.textAppearanceLarge);
-		output = new LinearLayout(this);
-		output.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		output.setOrientation(LinearLayout.VERTICAL);
+		
 
+		setContentView(R.layout.launcher_layout);
+		
+		//Init layout
+		output = (LinearLayout) findViewById(R.id.logOutput);
+		scroll = (ScrollView) findViewById(R.id.logScroll);
+		
+		//Fill log in already exists
 		for (int i = 0; i < DedicatedStatics.logView.size(); i++)
 		{
 			printText(DedicatedStatics.logView.get(i));
 		}
+		
+		TextView v = (TextView) findViewById(R.id.lnch_info);
+		v.setText("Game directory: " + DedicatedStatics.getBaseDir(this) + "\n" +
+					"Commamd-line args: " + DedicatedStatics.getArgv(this) + "\n" +
+					"Launch using: " + DedicatedStatics.getTranslator(this));
 
-		cmdArgs = new EditText(this);
-		cmdArgs.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		cmdArgs.setSingleLine();
-		baseDir = new EditText(this);
-		baseDir.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		baseDir.setSingleLine();
-
-		baseDir.setOnLongClickListener(new BaseDirPickListener());
-
-		cmdLine = new AutoCompleteTextView(this);
-		cmdLine.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		cmdLine.setSingleLine();
-		cmdLine.setHint(R.string.h_cmd);
+		cmdLine = (AutoCompleteTextView) findViewById(R.id.cmdLine);
 		cmdLine.setOnLongClickListener(new View.OnLongClickListener() {
 			@Override 
 			public boolean onLongClick(View v)
@@ -307,7 +211,7 @@ public class DedicatedActivity extends Activity {
 			}
 		});
 		cmdLine.setImeOptions(EditorInfo.IME_ACTION_SEND);
-		cmdLine.setOnEditorActionListener(new AutoCompleteTextView.OnEditorActionListener() {
+		cmdLine.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 			@Override
 			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 				if ((actionId == EditorInfo.IME_ACTION_SEND) || (event.getKeyCode() == KeyEvent.KEYCODE_ENTER))
@@ -322,53 +226,24 @@ public class DedicatedActivity extends Activity {
 		});
 		cmdLine.setThreshold(1);
 		cmdLine.setAdapter(new ArrayAdapter<String>(this, android.R.layout.select_dialog_singlechoice, commands));
-
-		LinearLayout button_bar = new LinearLayout(this);
-		button_bar.setOrientation(LinearLayout.HORIZONTAL);
-		button_bar.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		startButton = new Button(this);
-		scroll = new ScrollView(this);
-		scroll.setBackgroundColor(Color.BLACK);
-		scroll.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.MATCH_PARENT));
-		Button externalPicker = new Button(this);
-
-		externalPicker.setText(R.string.b_sd);
-		externalPicker.setLayoutParams(buttonParams);
-		externalPicker.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					printText("Trying to access...");
-
-					Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-					startActivityForResult(intent, 42);
-
-					initLauncher();
-				}
-			});
-		externalPicker.setEnabled(false);
-
-		launchXash = new Button(this);
-		launchXash.setText(R.string.b_start_xash);
-		launchXash.setLayoutParams(buttonParams);
+		
+		launchXash = (Button) findViewById(R.id.startXash);
 		launchXash.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View v) {
 					startXash();
 				}
 			});
-		launchXash.setEnabled(DedicatedService.canConnect);
+		setCanConnect(DedicatedService.canConnect);
 
+		startButton = (Button) findViewById(R.id.startButton);
 		// Set launch button title here
 		startButton.setText(isRunned?R.string.b_start_stop:R.string.b_start_launch);
-		startButton.setLayoutParams(buttonParams);
 		startButton.setOnClickListener( new View.OnClickListener() {
 				@Override
 				public void onClick(View v) {
 					isRunned = !isRunned;
 					startButton.setText(isRunned?R.string.b_start_stop:R.string.b_start_launch);
-
-					pushLauncherSettings();
-					saveSettings();
 
 					if (isRunned) {
 						startServer();
@@ -377,211 +252,48 @@ public class DedicatedActivity extends Activity {
 					}
 				}
 			});
-		launcher.addView(titleView);
-		launcher.addView(cmdArgs);
-		launcher.addView(titleView2);
-		launcher.addView(baseDir);
-		// Add other options here
-		if(System.getProperty("ro.product.cpu.abi") == "x86")
-			translator = "none";
-		else
-		{
-			final String[] list = listTranslators();
-			if(list.length > 1)
-			{
-				ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-																		android.R.layout.simple_spinner_dropdown_item, list);
-				adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-				translatorSelector = new Spinner(this);
-				translatorSelector.setAdapter(adapter);
-				translatorSelector.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-				translatorSelector.setOnItemSelectedListener(new Spinner.OnItemSelectedListener(){
-						@Override
-						public void onItemSelected(AdapterView<?> parent, View view,
-												   int pos, long id) {
-							translator = list[pos];
-						}
-						@Override
-						public void onNothingSelected(AdapterView<?> parent) {
-							translator = "qemu";
-						}
-
-					});
-				launcher.addView(translatorSelector);
-			}
-		}
-		button_bar.addView(startButton);
-		//if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)  //SD card pick API enabled on 5.0(v21) and higher
-		//button_bar.addView(externalPicker);
-		if (isXashInstalled()) button_bar.addView(launchXash);
-		launcher.addView(button_bar);
-		launcher.addView(cmdLine);
-		scroll.addView(output);
-		launcher.addView(scroll);
-
-		loadSettings();
-
-		setContentView(launcher);
-
-		getActionBar().setDisplayHomeAsUpEnabled(false);
-	}
-
-	void initMaster() {
-		tab = false;
-		setTitle(R.string.master_head);
-
-		ScrollView masterScroll = new ScrollView(this);
-
-		LinearLayout master = new LinearLayout(this);
-		master.setOrientation(LinearLayout.VERTICAL);
-		master.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
-
-		TextView gameNameView = new TextView(this);
-		gameNameView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		gameNameView.setText(R.string.l_game);
-		gameNameView.setTextAppearance(this, android.R.attr.textAppearanceLarge);
-
-		TextView gameDllsView = new TextView(this);
-		gameDllsView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		gameDllsView.setText(R.string.l_dlls);
-		gameDllsView.setTextAppearance(this, android.R.attr.textAppearanceLarge);
-
-		TextView gameMapView = new TextView(this);
-		gameMapView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		gameMapView.setText(R.string.l_map);
-		gameMapView.setTextAppearance(this, android.R.attr.textAppearanceLarge);
-
-		TextView serverPassView = new TextView(this);
-		serverPassView.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-		serverPassView.setText(R.string.l_rcon);
-		serverPassView.setTextAppearance(this, android.R.attr.textAppearanceLarge);
-
-		modDir = new EditText(this);
-		modDir.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		modDir.setHint(R.string.h_game);
-		modDir.setOnLongClickListener(new View.OnLongClickListener() {
-			@Override
-			public boolean onLongClick(View v)
-			{
-				modDir.setText("");
-				return true;
-			}
-		});
-
-		serverDlls = new EditText(this);
-		serverDlls.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		serverDlls.setHint(R.string.h_dlls);
-		serverDlls.setOnLongClickListener(new View.OnLongClickListener() {
-				@Override
-				public boolean onLongClick(View v)
-				{
-					serverDlls.setText("");
-					return true;
-				}
-			});
-
-		serverMap = new EditText(this);
-		serverMap.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		serverMap.setHint(R.string.h_map);
-		serverMap.setOnLongClickListener(new View.OnLongClickListener() {
-				@Override
-				public boolean onLongClick(View v)
-				{
-					serverMap.setText("");
-					return true;
-				}
-			});
-		
-		rconPass = new EditText(this);
-		rconPass.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-
-		devBox = new Switch(this);
-		devBox.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		devBox.setText(R.string.v_isdev);
-
-		conoleBox = new Switch(this);
-		conoleBox.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		conoleBox.setText(R.string.v_isconsole);
-
-		logBox = new Switch(this);
-		logBox.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		logBox.setText(R.string.v_islog);
-		logBox.setEnabled(false);
-
-		deathmatchSwitch = new Switch(this);
-		deathmatchSwitch.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		deathmatchSwitch.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					deathmatchSwitch.setText(deathmatchSwitch.isChecked()?R.string.v_isdm:R.string.v_iscoop);
-				}
-			});
 			
-		lanSwitch = new Switch(this);
-		lanSwitch.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-		lanSwitch.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					lanSwitch.setText(lanSwitch.isChecked()?R.string.v_ispublic:R.string.v_islan);
-				}
-			});
+		if (!isXashInstalled()) launchXash.setVisibility(View.INVISIBLE);
+		
+		isNewBinary = getSharedPreferences("dedicated", 0).getBoolean("newxash", false);
+		DedicatedStatics.chstr(isNewBinary);
 
-		Button saveButton = new Button(this);
-		saveButton.setLayoutParams(buttonParams);
-		saveButton.setText(R.string.l_save);
-		saveButton.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					pushMasterSettings();
-					saveSettings();
-				}
-			});
-
-		masterScroll.addView(master);
-
-		//master.addView(saveButton);
-		master.addView(gameNameView);
-		master.addView(modDir);
-		master.addView(makeListButton("", R.string.b_select));
-		master.addView(gameDllsView);
-		master.addView(serverDlls);
-		master.addView(makeListButton("dlls", R.string.b_select));
-		master.addView(gameMapView);
-		master.addView(serverMap);
-		master.addView(makeListButton("maps", R.string.b_select));
-		master.addView(serverPassView);
-		master.addView(rconPass);
-		master.addView(devBox);
-		master.addView(conoleBox);
-		master.addView(logBox);
-		master.addView(deathmatchSwitch);
-		master.addView(lanSwitch);
-
-		loadSettings();
-		parseArgsToMaster(argsString);
-
-		setContentView(masterScroll); //let us see that Master-Scroll!
-
-		getActionBar().setDisplayHomeAsUpEnabled(true);
+		if (! isRunned) {
+			printLog("Welcome to XashDSAndroid v1.3-forked BETA");
+			printInfo();
+		}
 	}
-
-	private Button makeListButton(String dir, int txtResId)
+	
+	void printInfo()
 	{
-		Button b = new Button(this);
-		b.setLayoutParams(buttonParams);
-		b.setText(txtResId);
-		b.setOnClickListener(new ListViewOpener(dir));
-		return b;
+		printLog("=========================================");
+		printLog("Base Directory: ");
+		printLog(DedicatedStatics.getBaseDir(this));
+		printLog("Game Directory: ");
+		printLog(DedicatedStatics.getGame(this).equals("")?"valve":DedicatedStatics.getGame(this));
+		printLog("Console Parameters: ");
+		printLog(DedicatedStatics.getArgv(this));
+		printLog("Translator: ");
+		printLog(DedicatedStatics.getTranslator(this));
+		printLog("Xash Binary: ");
+		printLog(DedicatedStatics.isNewBin()?"New":"\"Classic\"");
+		printLog("=========================================");
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
-		menu.add(Menu.NONE, 1, Menu.NONE, R.string.b_master);
-		menu.add(Menu.NONE, 2, Menu.NONE, R.string.b_refresh_cache);
-		menu.add(Menu.NONE, 3, Menu.NONE, R.string.b_about);
-		menu.add(Menu.NONE, 4, Menu.NONE, R.string.b_scut);
-		menu.add(Menu.NONE, 5, Menu.NONE, R.string.b_newxash).setCheckable(true).setChecked(isNewBinary);
+		menu.add(Menu.NONE, MITEMID_CLEAR, Menu.NONE, R.string.b_clean);
+		menu.add(Menu.NONE, MITEMID_REFRESH, Menu.NONE, R.string.b_refresh_cache);
+		menu.add(Menu.NONE, MITEMID_ABOUT, Menu.NONE, R.string.b_about);
+		menu.add(Menu.NONE, MITEMID_SCUT, Menu.NONE, R.string.b_scut);
+		menu.add(Menu.NONE, MITEMID_START, Menu.NONE, isRunned?R.string.b_start_stop:R.string.b_start_launch).setIcon(isRunned?R.drawable.stop:R.drawable.play).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+		if (isXashInstalled()) {
+			launchi = menu.add(Menu.NONE, MITEMID_JOIN, Menu.NONE, R.string.b_start_xash);
+			launchi.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+			setCanConnect(DedicatedService.canConnect);
+		}
+		menu.add(Menu.NONE, MITEMID_SETTINGS, Menu.NONE, R.string.b_settings).setIcon(R.drawable.settings).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 		return super.onCreateOptionsMenu(menu);
 	}
 
@@ -589,86 +301,59 @@ public class DedicatedActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		switch (item.getItemId()) {
-			case android.R.id.home:
-				if (tab) pushLauncherSettings();
-					else pushMasterSettings();
-				saveSettings();
-				initLauncher();
-				launcherItem.setTitle(R.string.b_master);
+			case MITEMID_SETTINGS:
+				startActivity(new Intent(DedicatedActivity.this, SettingsActivity.class));
 				return true;
-			case 1:
-				if (tab) pushLauncherSettings();
-					else pushMasterSettings();
-				saveSettings();
-				launcherItem = item;
-				if (tab) initMaster();
-				else initLauncher();
-				if (tab) item.setTitle(R.string.b_master);
-				else item.setTitle(R.string.b_master_close);
+			case MITEMID_CLEAR:
+				output.removeAllViews();
+				DedicatedStatics.logView.clear();
+
+				printLog("Welcome to XashDSAndroid v1.3-forked BETA");
+				printInfo();
 				return true;
-			case 2:
-				saveSettings();
+			case MITEMID_REFRESH:
 				refreshCache();
 				return true;
-			case 3:
+			case MITEMID_ABOUT:
 				startActivity(new Intent(DedicatedActivity.this, AboutActivity.class));
 				return true;
-			case 4:
+			case MITEMID_SCUT:
 				createShortcut();
 				return true;
-			case 5:
-				item.setChecked(!item.isChecked());
-				isNewBinary = item.isChecked();
-				DedicatedStatics.chstr(isNewBinary);
-				saveSettings();
+			case MITEMID_START:
+				isRunned = !isRunned;
+				startButton.setText(isRunned?R.string.b_start_stop:R.string.b_start_launch);
+
+				if (isRunned) {
+					startServer();
+				} else {
+					stopServer();
+				}
+
+				item.setIcon(isRunned?R.drawable.stop:R.drawable.play);
+				item.setTitle(isRunned?R.string.b_start_stop:R.string.b_start_launch);
+				return true;
+			case MITEMID_JOIN:
+				startXash();
 				return true;
 			default:
 				return super.onOptionsItemSelected(item);
 		}
 	}
 
-	public String makeMasterArgs() 
-	{
-		String ret = "";
-		if (devBox.isChecked()) ret += "-dev 3 ";
-		if (conoleBox.isChecked()) ret += "-console ";
-		if (logBox.isChecked()) ret += "-log ";
-		if (!modDir.getText().toString().equals("")) ret += CommandParser.makeParamArgString(modDir.getText().toString(), "-game");
-		if (!serverDlls.getText().toString().equals("")) ret += CommandParser.makeParamArgString(serverDlls.getText().toString(), "-dll");
-		if (!serverMap.getText().toString().equals("")) ret += CommandParser.makeParamArgString(serverMap.getText().toString(), "+map");
-		if (!rconPass.getText().toString().equals("")) ret += CommandParser.makeParamArgString(rconPass.getText().toString(), "+rcon_password");
-		if (deathmatchSwitch.isChecked()) ret += "+deathmatch 1 ";
-			else ret += "+coop 1 ";
-		if (lanSwitch.isChecked()) ret += "+public 1";
-		return ret;
-	}
-
-	public void parseArgsToMaster(String args) {
-		modDir.setText(CommandParser.parseSingleParameter(args, "-game"));
-		serverDlls.setText(CommandParser.parseMultipleParameter(args, "-dll"));
-		serverMap.setText(CommandParser.parseSingleParameter(args, "+map"));
-		rconPass.setText(CommandParser.parseSingleParameter(args, "+rcon_password"));
-		devBox.setChecked(CommandParser.parseLogicParameter(args, "-dev"));
-		conoleBox.setChecked(CommandParser.parseLogicParameter(args, "-console"));
-		logBox.setChecked(CommandParser.parseLogicParameter(args, "-log"));
-		if (CommandParser.parseSingleParameter(args, "+deathmatch").equals("1")) deathmatchSwitch.setChecked(true);
-		if (CommandParser.parseSingleParameter(args, "+coop").equals("1")) deathmatchSwitch.setChecked(false);
-		if (CommandParser.parseSingleParameter(args, "+public").equals("1")) lanSwitch.setChecked(true);
-		deathmatchSwitch.setText(deathmatchSwitch.isChecked()?R.string.v_isdm:R.string.v_iscoop);
-		lanSwitch.setText(lanSwitch.isChecked()?R.string.v_ispublic:R.string.v_islan);
-	}
-
+	//default server start function
 	public void startServer()
 	{
 		unpackAssets();
 		Intent dedicatedServer = new Intent(DedicatedActivity.this, DedicatedService.class);
-		dedicatedServer.putExtra("argv", argsString);
-		dedicatedServer.putExtra("path", gamePath);
-		dedicatedServer.putExtra("translator", translator);
+		dedicatedServer.putExtra("argv", DedicatedStatics.getArgv(this));
+		dedicatedServer.putExtra("path", DedicatedStatics.getBaseDir(this));
+		dedicatedServer.putExtra("translator", DedicatedStatics.getTranslator(this));
 		dedicatedServer.putExtra("files", filesDir);
 		this.startService(dedicatedServer);
 	}
-	
+
+	//start server with custom parameters (as on autostart from shortcut)
 	public void startServer(String game, String filesPath, String argv, String ctranslator)
 	{
 		getIcon();
@@ -684,6 +369,8 @@ public class DedicatedActivity extends Activity {
 	public void stopServer()
 	{
 		autostarted = false;
+		DedicatedService.isStarted = false;
+		DedicatedService.canConnect = false;
 		stopService(new Intent(DedicatedActivity.this, DedicatedService.class));
 	}
 
@@ -691,89 +378,14 @@ public class DedicatedActivity extends Activity {
 	protected void onDestroy()
 	{
 		DedicatedStatics.launched = null;
-		saveSettings();
 		super.onDestroy();
 	}
 
 	@Override
-	protected void onPause()
+	protected void onResume()
 	{
-		saveSettings();
-		super.onPause();
-	}
-
-	public class ListViewOpener implements View.OnClickListener
-	{
-		String folder;
-
-		ListViewOpener(String f)
-		{
-			folder = f;
-		}
-
-		@Override
-		public void onClick(View p1)
-		{
-			pushMasterSettings();
-			saveSettings();
-			Intent newi = new Intent(DedicatedActivity.this, ListActivity.class);
-			newi.putExtra("folder", folder);
-			startActivityForResult(newi, 1998);
-		}
-	}
-	
-	public class BaseDirPickListener implements View.OnLongClickListener
-	{
-		@Override
-		public boolean onLongClick(View p1)
-		{
-			saveSettings();
-			Intent newi = new Intent(DedicatedActivity.this, ListActivity.class);
-			newi.putExtra("folder", "basedir");
-			newi.putExtra("dir", baseDir.getText().toString());
-			startActivityForResult(newi, 1998);
-			
-			return true;
-		}
-	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data)
-	{
-		super.onActivityResult(requestCode, resultCode, data);
-
-		if (requestCode == 1998) if (resultCode == RESULT_OK) {
-				String result = data.getStringExtra("result");
-				final String folder = data.getStringExtra("folder");
-				printText("Returned result: "+result);
-				
-				switch (folder) {
-					case "dlls":
-						if (serverDlls.getText().toString().lastIndexOf(result) == -1) 
-							if (serverDlls.getText().toString().equals("")) serverDlls.append(result);
-							else serverDlls.append(", "+result);
-						pushMasterSettings();
-						break;
-					case "maps":
-						serverMap.setText(result);
-						pushMasterSettings();
-						break;
-					case "basedir":
-						baseDir.setText(result);
-						saveSettings();
-						break;
-					case "":
-						if (!modDir.getText().toString().equals(result)) {
-							serverDlls.setText("");
-							serverMap.setText("");
-						}
-						modDir.setText((result.equals("valve"))?"":result);
-						pushMasterSettings();
-						break;
-				}
-
-				saveSettings();
-			}
+		initLauncher();
+		super.onResume();
 	}
 
 	public void startXash()
@@ -788,11 +400,18 @@ public class DedicatedActivity extends Activity {
 		{
 			getPackageManager().getPackageInfo("in.celest.xash3d.hl", PackageManager.GET_ACTIVITIES);
 			return true;
-		} catch (PackageManager.NameNotFoundException e) {}
+		} catch (PackageManager.NameNotFoundException e) {
+			try 
+			{
+				getPackageManager().getPackageInfo("in.celest.xash3d.hl.test", PackageManager.GET_ACTIVITIES);
+				return true;
+			} catch (PackageManager.NameNotFoundException e1) {}
+		}
 
 		return false;
 	}
 
+	//unpack asset and set it's mode to 777
 	public void unpackAsset(String name) throws Exception {
 		printText("Unpacking "+name+"...");
 		AssetManager assetManager = getApplicationContext().getAssets();
@@ -805,6 +424,8 @@ public class DedicatedActivity extends Activity {
 		}
 		out.close(); 
 		in.close();
+		printText("Changing permissions...");
+		Runtime.getRuntime().exec("chmod 777 " + filesDir + "/" +name);
 		printText("[OK]\n");
 	}
 	
@@ -814,25 +435,19 @@ public class DedicatedActivity extends Activity {
 		try 
 		{
 
-			if(!f.exists() || (getPackageManager().getPackageInfo(getPackageName(), 0).versionCode != mPref.getInt("lastversion", 1)) )
+			if(!f.exists() || (getPackageManager().getPackageInfo(getPackageName(), 0).versionCode != getSharedPreferences("dedicated", 0).getInt("lastversion", 1)) )
 			{
 				//Unpack files now
-				//scroll.fullScroll(ScrollView.FOCUS_DOWN);
 				unpackAsset("xash");
-				//scroll.fullScroll(ScrollView.FOCUS_DOWN);
 				unpackAsset("xash_sse2");
-				//scroll.fullScroll(ScrollView.FOCUS_DOWN);
-				unpackAsset("start-translator.sh");
-				//scroll.fullScroll(ScrollView.FOCUS_DOWN);
-				unpackAsset("tracker");
-				//scroll.fullScroll(ScrollView.FOCUS_DOWN);
-				unpackAsset("qemu-i386-static");
-				
 				unpackAsset("xash-old");
-				
-				printText("[OK]\nSetting permissions.\n");
-				//scroll.fullScroll(ScrollView.FOCUS_DOWN);
-				Runtime.getRuntime().exec("chmod 777 " + filesDir + "/xash " + filesDir + "/xash_sse2 " + filesDir + "/tracker " + filesDir + "/qemu-i386-static "+filesDir+"/xash-old ").waitFor();
+				unpackAsset("start-translator.sh");
+				unpackAsset("tracker");
+				unpackAsset("qemu-i386-static");
+
+				printText("[OK]\n");
+
+				getSharedPreferences("dedicated", 0).edit().putInt("lastversion", getPackageManager().getPackageInfo(getPackageName(), 0).versionCode).commit();
 			}
 		} catch (Exception e) {}
 	}
@@ -844,13 +459,17 @@ public class DedicatedActivity extends Activity {
 				@Override
 				public void run()
 				{
-					launchXash.setEnabled(can);
+					if (launchXash != null) launchXash.setEnabled(can);
+					if (launchi != null) {
+						launchi.setEnabled(can);
+						launchi.setIcon(can ? R.drawable.join : R.drawable.join_disabled);
+					}
 					if (can&&autolaunch&&autostarted)
 					{
 						autolaunch = false;
 						if (automode)
 						{
-							String arguments = autostarted?autoArgv:argsString;
+							String arguments = autostarted?autoArgv:DedicatedStatics.getArgv(DedicatedActivity.this);
 
 							String game = CommandParser.parseSingleParameter(arguments, "-game");
 							Intent intent = new Intent();
@@ -864,7 +483,7 @@ public class DedicatedActivity extends Activity {
 						}
 						else
 						{
-							String arguments = autostarted?autoArgv:argsString;
+							String arguments = autostarted?autoArgv:DedicatedStatics.getArgv(DedicatedActivity.this);
 
 							String game = CommandParser.parseSingleParameter(arguments, "-game");
 							Intent intent = new Intent();
@@ -894,8 +513,8 @@ public class DedicatedActivity extends Activity {
 		
 		int size = (int) getResources().getDimension(android.R.dimen.app_icon_size);
 		
-		String game = CommandParser.parseSingleParameter(argsString, "-game");
-		String gamedirstring = gamePath+"/"+(game.length()!=0?game:"valve");
+		String game = DedicatedStatics.getGame(this);
+		String gamedirstring = DedicatedStatics.getBaseDir(this)+"/"+(game.length()!=0?game:"valve");
 		try
 		{
 			icon = Bitmap.createScaledBitmap(BitmapFactory.decodeFile(gamedirstring+"/icon.png"), size, size, false);
@@ -958,8 +577,8 @@ public class DedicatedActivity extends Activity {
 		if ((!s.equals(""))&&DedicatedService.isStarted)
 		{
 			//DedicatedService.sendCmd(s);
-			try { sendRconCommand("localhost", 27015, CommandParser.parseSingleParameter(argsString, "+rcon_password"), s); } catch (Exception e) {}
-			printText("/> "+s);
+			try { sendRconCommand("localhost", 27015, CommandParser.parseSingleParameter(DedicatedStatics.getArgv(this), "+rcon_password"), s); } catch (Exception e) {}
+			printText("\033[33mrcon_input\033[32m>\033[0m "+s);
 		}
 	}
 	
