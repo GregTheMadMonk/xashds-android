@@ -1,7 +1,7 @@
 # XashDS Android - fork of FWGS's *xashds-android*
 Android dedicated server with x86 dynamic translator and dll support [**custom modification**].
 ![Logo](res/drawable/logo.png)
-## Current version - v1.2-forked
+## Current version - v1.2-forked (_Testing: v1.3-forked-beta_)
 ### Current changes since mittorn's version:
 
 * **New interface theme** (Material for Lollipop, Holo for elder Android versions)
