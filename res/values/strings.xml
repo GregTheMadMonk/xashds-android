@@ -51,10 +51,12 @@
 
 	<string name="v_isdev">Enable developer mode</string>
 	<string name="v_isconsole">Enable console</string>
-	<string name="v_islog">Enable log:</string>
+	<string name="v_islog">Enable log</string>
 	<string name="v_iscoop">Enable coop</string>
 	<string name="v_ispublic">Internet server</string>
 	<string name="v_islan">LAN server</string>
+	<string name="v_mcoop_hack">mcoop_hack</string>
+	<string name="v_mcoop_hack2">Enable coop map checksum hack</string>
 
 	<string name="pr_basedir">Game folder location</string>
 	<string name="pr_maxloglength">Maximum log lines to store</string>

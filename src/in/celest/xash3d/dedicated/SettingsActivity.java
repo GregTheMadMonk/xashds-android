@@ -100,6 +100,7 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
 		findPreference("s_log").setOnPreferenceChangeListener(this);
 		findPreference("s_coop").setOnPreferenceChangeListener(this);
 		findPreference("s_public").setOnPreferenceChangeListener(this);
+		findPreference("s_mcoop_hack").setOnPreferenceChangeListener(this);
 	}
 
 	@Override
@@ -186,6 +187,9 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
 			case "s_public":
 				argv = ((boolean) newValue)?CommandParser.addParam(argv, "+public 1"):argv.replace("+public 1", "");
 				break;
+			case "s_mcoop_hack":
+				argv = ((boolean) newValue)?CommandParser.addParam(argv, "+mcoop_hack 1"):argv.replace("+mcoop_hack 1", "");
+				break;
 			case "translator":
 				getSharedPreferences("dedicated", 0).edit().putString("translator", (String) newValue).commit();
 				break;
@@ -231,6 +235,7 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
 				putString("s_map", CommandParser.parseSingleParameter(argv, "+map")).
 				putString("s_rcon", CommandParser.parseSingleParameter(argv, "+rcon_password")).
 				putBoolean("s_public", CommandParser.parseLogicParameter(argv, "+public")).
+				putBoolean("s_mcoop_hack", CommandParser.parseLogicParameter(argv, "+mcoop_hack")).
 				commit();
 
 		//set preferences values
@@ -239,6 +244,7 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
 		((CheckBoxPreference) findPreference("s_log")).setChecked(CommandParser.parseLogicParameter(argv, "-log"));
 		((CheckBoxPreference) findPreference("s_coop")).setChecked(CommandParser.parseLogicParameter(argv, "+coop"));
 		((CheckBoxPreference) findPreference("s_public")).setChecked(CommandParser.parseLogicParameter(argv, "+public"));
+		((CheckBoxPreference) findPreference("s_mcoop_hack")).setChecked(CommandParser.parseLogicParameter(argv, "+mcoop_hack"));
 
 		((EditTextPreference) findPreference("argv")).setText(argv);
 		((EditTextPreference) findPreference("s_rcon")).setText(CommandParser.parseSingleParameter(argv, "+rcon_password"));

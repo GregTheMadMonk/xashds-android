@@ -69,5 +69,10 @@
 			android:key="s_public"
 			android:title="@string/v_ispublic"
 			/>
+		<CheckBoxPreference
+			android:key="s_mcoop_hack"
+			android:title="@string/v_mcoop_hack"
+			android:summary="@string/v_mcoop_hack2"
+			/>
 	</PreferenceCategory>
 </PreferenceScreen>
