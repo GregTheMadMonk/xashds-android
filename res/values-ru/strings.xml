@@ -55,7 +55,7 @@
 	<string name="v_islan">Сервер в LAN</string>
 	<string name="v_mcoop_hack2">Разрешить хак карт в кооперативе</string>
 	
-	<string name="t_about1">XashDS Andoid (v1.3-forked[beta])\nОригинальное приложение: mittorn (FWGS team)\nФорк: GregTheMadMonk (Greg)\n\nОсобые благодарности:\n-Дяде Мише за Xash3D\n-FWGS team за Xash3D FWGS и первый XashDS\n-Valve за Half-Life и GoldSrc</string>
+	<string name="t_about1">XashDS Andoid (v1.3.1-forked[beta])\nОригинальное приложение: mittorn (FWGS team)\nФорк: GregTheMadMonk (Greg)\n\nОсобые благодарности:\n-Дяде Мише за Xash3D\n-FWGS team за Xash3D FWGS и первый XashDS\n-Valve за Half-Life и GoldSrc</string>
 	<string name="pr_basedir">Папка с игрой</string>
 	<string name="b_settings">Настройки...</string>
 	<string name="l_remdlls">Очистить DLL\'и</string>

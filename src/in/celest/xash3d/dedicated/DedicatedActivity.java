@@ -260,7 +260,7 @@ public class DedicatedActivity extends Activity {
 		DedicatedStatics.chstr(isNewBinary);
 
 		if (! isRunned) {
-			printLog("Welcome to XashDSAndroid v1.3-forked BETA");
+			printLog("Welcome to XashDSAndroid v1.3.1-forked BETA");
 			printInfo();
 		}
 	}
@@ -310,7 +310,7 @@ public class DedicatedActivity extends Activity {
 				output.removeAllViews();
 				DedicatedStatics.logView.clear();
 
-				printLog("Welcome to XashDSAndroid v1.3-forked BETA");
+				printLog("Welcome to XashDSAndroid v1.3.1-forked BETA");
 				printInfo();
 				return true;
 			case MITEMID_REFRESH:
