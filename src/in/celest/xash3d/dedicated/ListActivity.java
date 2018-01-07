@@ -83,7 +83,7 @@ public class ListActivity extends Activity {
 			String s = "";
 			String temp;
 
-			if (pkgAppsList != null) for (ResolveInfo inf : pkgAppsList)
+			if (pkgAppsList != null) for (final ResolveInfo inf : pkgAppsList)
 			{
 				temp = inf.activityInfo.name;
 				if (temp.contains("in.celest.xash3d.")
