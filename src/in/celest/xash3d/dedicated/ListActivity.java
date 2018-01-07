@@ -2,6 +2,7 @@ package in.celest.xash3d.dedicated;
 
 import android.app.*;
 import android.content.*;
+import android.content.pm.ResolveInfo;
 import android.graphics.*;
 import android.os.*;
 import android.view.*;
@@ -9,6 +10,7 @@ import android.view.View.*;
 import android.widget.*;
 import android.widget.LinearLayout.*;
 import java.io.*;
+import java.util.List;
 
 import android.view.View.OnClickListener;
 
@@ -31,6 +33,7 @@ public class ListActivity extends Activity {
 	public static final String REQUEST_BASEDIR_SELECT = "basedir";
 	public static final String REQUEST_MAP_SELECT = "maps";
 	public static final String REQUEST_DLL_SELECT = "dlls";
+	public static final String REQUEST_MOD_SELECT = "mod_l";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -39,6 +42,8 @@ public class ListActivity extends Activity {
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         folder = getIntent().getStringExtra("folder");
+
+		boolean notfound = true;
 
 		//make views
         ScrollView content = new ScrollView(this);
@@ -69,92 +74,121 @@ public class ListActivity extends Activity {
 
 		mainlayout.addView(exit);
 
-		if (folder.equals(REQUEST_BASEDIR_SELECT)) 	//when selecting directory, we need "select" button
+		if (folder.equals(REQUEST_MOD_SELECT))
 		{
-			Button ok = new Button(this);
-			ok.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-			ok.setText(R.string.b_select);
-			ok.setOnClickListener(new OkClickListener());
-			mainlayout.addView(ok);
-		}
+			Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+			mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+			List<ResolveInfo> pkgAppsList = getPackageManager().queryIntentActivities( mainIntent, 0);
 
-        mainlayout.addView(header);
+			String s = "";
+			String temp;
 
-		String game = DedicatedStatics.getGame(this);
-		if (game.equals("")) game = "valve";
-
-		//setting up paths
-		switch (folder)
-		{
-			case REQUEST_GAME_SELECT:
-				filePath = DedicatedStatics.getBaseDir(this);
-				relativePath = "";
-				break;
-			case REQUEST_BASEDIR_SELECT:
-				filePath = getIntent().getStringExtra("dir");
-				break;
-			default:
-				filePath = makeDir(DedicatedStatics.getBaseDir(this), game, folder);
-				relativePath = folder + "/";
-				break;
-		}
-
-		File dir;	//directory we are listing
-		dir = new File(filePath);
-        File[] files = dir.listFiles();
-
-		if (folder.equals(REQUEST_BASEDIR_SELECT) && (!filePath.equals("/")))	//we need to be able to go to parent directory in folder selector only if current directory is not root
-		{
-			Button toParent = new Button(this);
-			toParent.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
-			toParent.setText("..");
-			toParent.setOnClickListener(new BaseDirPickerListener(".."));
-			layout.addView(toParent);
-		}
-
-		boolean notfound = true;
-        if (files != null) for (File f : files) //directory not empty
-        {
-            Button v = new Button(this);
-            v.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-            v.setText(f.getName());
-			if (folder.equals("basedir")) v.setOnClickListener(new BaseDirPickerListener(f.getName()));
-				else v.setOnClickListener(new FilePickerListener(f.getName()));
-
-			switch (folder)
+			if (pkgAppsList != null) for (ResolveInfo inf : pkgAppsList)
 			{
-				case REQUEST_BASEDIR_SELECT:
-					if (f.isDirectory())
-					{
-						if (checkSubdirs(f.getAbsolutePath())) v.setTextColor(okTextColor);
-						layout.addView(v);
-						if (notfound) notfound = false;
-					}
-					break;
+				temp = inf.activityInfo.name;
+				if (temp.contains("in.celest.xash3d.")
+						&& (!temp.equals("in.celest.xash3d.LauncherActivity"))
+						&& (!temp.contains("in.celest.xash3d.dedicated.")))
+				{
+					s += temp + "\n";
+					Button v = new Button(this);
+					v.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+					v.setText(inf.loadLabel(getPackageManager()));
+					v.setOnClickListener(new OnClickListener() {
+						String l = inf.activityInfo.name;
+						@Override
+						public void onClick(View view) {
+							makeResult(inf.activityInfo.name);
+						}
+					});
+					layout.addView(v);
+					notfound = false;
+				}
+			}
+			//Toast.makeText(this, s, Toast.LENGTH_LONG).show();
+		} else {
+
+			if (folder.equals(REQUEST_BASEDIR_SELECT))    //when selecting directory, we need "select" button
+			{
+				Button ok = new Button(this);
+				ok.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+				ok.setText(R.string.b_select);
+				ok.setOnClickListener(new OkClickListener());
+				mainlayout.addView(ok);
+			}
+
+			mainlayout.addView(header);
+
+			String game = DedicatedStatics.getGame(this);
+			if (game.equals("")) game = "valve";
+
+			//setting up paths
+			switch (folder) {
 				case REQUEST_GAME_SELECT:
-					if (f.isDirectory())
-					{
-						layout.addView(v);
-						if (notfound) notfound = false;
-					}
+					filePath = DedicatedStatics.getBaseDir(this);
+					relativePath = "";
 					break;
-				case REQUEST_MAP_SELECT:
-					if (f.getName().lastIndexOf(".bsp") != -1)
-					{
-						layout.addView(v);
-						if (notfound) notfound = false;
-					}
+				case REQUEST_BASEDIR_SELECT:
+					filePath = getIntent().getStringExtra("dir");
 					break;
-				case REQUEST_DLL_SELECT:
-					if ((f.getName().lastIndexOf(".dll") != -1)||(f.getName().lastIndexOf(".so") != -1))
-					{
-						layout.addView(v);
-						if (notfound) notfound = false;
-					}
+				default:
+					filePath = makeDir(DedicatedStatics.getBaseDir(this), game, folder);
+					relativePath = folder + "/";
 					break;
 			}
-        }
 
+			File dir;    //directory we are listing
+			dir = new File(filePath);
+			File[] files = dir.listFiles();
+
+			if (folder.equals(REQUEST_BASEDIR_SELECT) && (!filePath.equals("/")))    //we need to be able to go to parent directory in folder selector only if current directory is not root
+			{
+				Button toParent = new Button(this);
+				toParent.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
+				toParent.setText("..");
+				toParent.setOnClickListener(new BaseDirPickerListener(".."));
+				layout.addView(toParent);
+			}
+
+			if (files != null) for (File f : files) //directory not empty
+			{
+				Button v = new Button(this);
+				v.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+				v.setText(f.getName());
+				if (folder.equals("basedir"))
+					v.setOnClickListener(new BaseDirPickerListener(f.getName()));
+				else v.setOnClickListener(new FilePickerListener(f.getName()));
+
+				switch (folder) {
+					case REQUEST_BASEDIR_SELECT:
+						if (f.isDirectory()) {
+							if (checkSubdirs(f.getAbsolutePath())) v.setTextColor(okTextColor);
+							layout.addView(v);
+							if (notfound) notfound = false;
+						}
+						break;
+					case REQUEST_GAME_SELECT:
+						if (f.isDirectory()) {
+							layout.addView(v);
+							if (notfound) notfound = false;
+						}
+						break;
+					case REQUEST_MAP_SELECT:
+						if (f.getName().lastIndexOf(".bsp") != -1) {
+							layout.addView(v);
+							if (notfound) notfound = false;
+						}
+						break;
+					case REQUEST_DLL_SELECT:
+						if ((f.getName().lastIndexOf(".dll") != -1) || (f.getName().lastIndexOf(".so") != -1)) {
+							layout.addView(v);
+							if (notfound) notfound = false;
+						}
+						break;
+				}
+			}
+
+		}
         if (notfound) //empty directory or not found matching files
         {
 			TextView v = new TextView(this);

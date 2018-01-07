@@ -52,6 +52,7 @@ public class DedicatedActivity extends Activity {
 	private final int MITEMID_START 		= 5;
 	private final int MITEMID_JOIN 			= 6;
 	private final int MITEMID_SETTINGS		= 7;
+	private final int MITEMID_COPY_XHARG 	= 8;
 
 	private static String[] commands =
 			{
@@ -293,6 +294,7 @@ public class DedicatedActivity extends Activity {
 			launchi.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 			setCanConnect(DedicatedService.canConnect);
 		}
+		menu.add(Menu.NONE, MITEMID_COPY_XHARG, Menu.NONE, R.string.b_copy_xharg);
 		menu.add(Menu.NONE, MITEMID_SETTINGS, Menu.NONE, R.string.b_settings).setIcon(R.drawable.settings).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -335,6 +337,13 @@ public class DedicatedActivity extends Activity {
 				return true;
 			case MITEMID_JOIN:
 				startXash();
+				return true;
+			case MITEMID_COPY_XHARG:
+				String text = "-dev 3 +xashds_hacks 1 +rcon_address 127.0.0.1 +rcon_password "+CommandParser.parseSingleParameter(DedicatedStatics.getArgv(this), "+rcon_password");
+				ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+				ClipData clip = ClipData.newPlainText(text, text);
+				clipboard.setPrimaryClip(clip);
+				Toast.makeText(this, "Text copied to clipboard", Toast.LENGTH_LONG).show();
 				return true;
 			default:
 				return super.onOptionsItemSelected(item);

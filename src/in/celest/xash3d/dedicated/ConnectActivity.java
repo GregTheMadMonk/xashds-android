@@ -44,6 +44,18 @@ public class ConnectActivity extends Activity
 					finish();
 				}
 			});
+
+
+		Button modLButton = new Button(this);
+		modLButton.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+		modLButton.setText(R.string.b_mod_l);
+		modLButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v)
+			{
+				modL();
+			}
+		});
 			
 		Button closeButton = new Button(this);
 		closeButton.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
@@ -58,6 +70,7 @@ public class ConnectActivity extends Activity
 			
 		layout.addView(xacksButton);
 		layout.addView(connectButton);
+		layout.addView(modLButton);
 		layout.addView(closeButton);
 		
 		setContentView(layout);
@@ -76,6 +89,13 @@ public class ConnectActivity extends Activity
 
 		startActivity(intent);
 	}
+
+	public void modL()
+	{
+		Intent newi = new Intent(ConnectActivity.this, ListActivity.class);
+		newi.putExtra("folder", ListActivity.REQUEST_MOD_SELECT);
+		startActivityForResult(newi, 1998);
+	}
 	
 	public void startConnect(){
 		String arguments = DedicatedActivity.autostarted?DedicatedActivity.autoArgv:DedicatedStatics.getArgv(this);
@@ -89,5 +109,19 @@ public class ConnectActivity extends Activity
 		if (!game.equals("")) intent.putExtra("gamedir", game);
 		
 		startActivity(intent);
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if (requestCode == 1998) if (resultCode == RESULT_OK)
+		{
+			String result = data.getStringExtra("result");
+			Intent intent = new Intent();
+			//Toast.makeText(this, "Launching " + result.substring(0, result.lastIndexOf('.'))+"\n"+result, Toast.LENGTH_LONG).show();
+			intent.setComponent(new ComponentName(result.substring(0, result.lastIndexOf('.')), result));
+			startActivity(intent);
+			finish();
+		}
 	}
 }

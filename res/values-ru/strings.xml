@@ -64,4 +64,6 @@
 	<string name="l_appsettings">Настройки приложения</string>
     <string name="pr_maxloglength">Количество сообщений лога</string>
 	<string name="pr_maxloglines_s">Оставьте 0, чтобы хранить все сообщения в памяти</string>
+    <string name="b_copy_xharg">Копировать арг. для лаунчера</string>
+	<string name="b_mod_l">Список лаунчеров модов</string>
 </resources>
