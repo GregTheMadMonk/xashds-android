@@ -117,10 +117,28 @@ public class ConnectActivity extends Activity
 		if (requestCode == 1998) if (resultCode == RESULT_OK)
 		{
 			String result = data.getStringExtra("result");
+
+			String arguments = DedicatedActivity.autostarted?DedicatedActivity.autoArgv:DedicatedStatics.getArgv(this);
+			String temp = "-dev 3 +xashds_hacks 1 +rcon_address 127.0.0.1 +rcon_password "+CommandParser.parseSingleParameter(arguments, "+rcon_password");
+
 			Intent intent = new Intent();
-			//Toast.makeText(this, "Launching " + result.substring(0, result.lastIndexOf('.'))+"\n"+result, Toast.LENGTH_LONG).show();
-			intent.setComponent(new ComponentName(result.substring(0, result.lastIndexOf('.')), result));
-			startActivity(intent);
+			intent.setAction("in.celest.xash3d.START");
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+			intent.putExtra("argv", temp);
+
+			temp = CommandParser.parseSingleParameter(arguments, "-game");String game = CommandParser.parseSingleParameter(arguments, "-game");
+			if (!game.equals("")) intent.putExtra("gamedir", temp);
+
+			try {
+				temp = getPackageManager().getPackageInfo(result.substring(0, result.lastIndexOf('.')), 0).applicationInfo.dataDir + "/lib";
+				//Toast.makeText(this, temp, Toast.LENGTH_LONG).show();
+				intent.putExtra("gamelibdir", temp);
+				startActivity(intent);
+			} catch (Exception e) { Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show(); return; }
+
+			/*//Toast.makeText(this, "Launching " + result.substring(0, result.lastIndexOf('.'))+"\n"+result, Toast.LENGTH_LONG).show();
+			intent.setComponent(new ComponentName(result.substring(0, result.lastIndexOf('.')), result));*/
 			finish();
 		}
 	}
