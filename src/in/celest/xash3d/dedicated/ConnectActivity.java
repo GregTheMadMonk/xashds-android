@@ -26,7 +26,7 @@ public class ConnectActivity extends Activity
 		layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		layout.setOrientation(LinearLayout.VERTICAL);
 
-		Switch hacks = new Switch(this);
+		final Switch hacks = new Switch(this);
 		hacks.setText(hacks.isChecked()?R.string.l_scut_gamem2:R.string.l_scut_gamem1);
 		hacks.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 		hacks.setOnClickListener(new View.OnClickListener() {
@@ -64,7 +64,6 @@ public class ConnectActivity extends Activity
 					boolean b = isXash;
 					@Override
 					public void onClick(View view) {
-						//TODO: call launch action
 						Intent intent = new Intent();
 						intent.setAction("in.celest.xash3d.START");
 						intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
