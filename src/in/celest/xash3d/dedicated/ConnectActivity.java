@@ -1,5 +1,6 @@
 package in.celest.xash3d.dedicated;
 import android.app.*;
+import android.content.pm.ResolveInfo;
 import android.os.*;
 import android.widget.*;
 import android.widget.RelativeLayout.*;
@@ -7,8 +8,12 @@ import android.text.*;
 import android.view.*;
 import android.content.*;
 
+import java.util.List;
+
 public class ConnectActivity extends Activity
 {
+
+	private boolean useHacks = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -20,43 +25,77 @@ public class ConnectActivity extends Activity
 		LinearLayout layout = new LinearLayout(this);
 		layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		layout.setOrientation(LinearLayout.VERTICAL);
-		
-		Button xacksButton = new Button(this);
-		xacksButton.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-		xacksButton.setText(R.string.b_start_xash_hacks);
-		xacksButton.setOnClickListener(new View.OnClickListener() {
+
+		Switch hacks = new Switch(this);
+		hacks.setText(hacks.isChecked()?R.string.l_scut_gamem2:R.string.l_scut_gamem1);
+		hacks.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+		hacks.setOnClickListener(new View.OnClickListener() {
 			@Override
-			public void onClick(View v)
-			{
-				startHacks();
-				finish();
+			public void onClick(View v) {
+				hacks.setText(hacks.isChecked()?R.string.l_scut_gamem2:R.string.l_scut_gamem1);
+				useHacks = hacks.isChecked();
 			}
 		});
+		layout.addView(hacks);
 
-		Button connectButton = new Button(this);
-		connectButton.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-		connectButton.setText(R.string.b_start_xash_connect);
-		connectButton.setOnClickListener(new View.OnClickListener() {
-				@Override
-				public void onClick(View v)
-				{
-					startConnect();
-					finish();
-				}
-			});
+		//make app list
+		Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+		mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+		List<ResolveInfo> pkgAppsList = getPackageManager().queryIntentActivities( mainIntent, 0);
 
+		String s = "";
+		String temp;
 
-		Button modLButton = new Button(this);
-		modLButton.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-		modLButton.setText(R.string.b_mod_l);
-		modLButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v)
+		if (pkgAppsList != null) for (final ResolveInfo inf : pkgAppsList)
+		{
+			temp = inf.activityInfo.name;
+			if (temp.contains("in.celest.xash3d.")
+					&& (!temp.contains("in.celest.xash3d.dedicated.")))
 			{
-				modL();
+				s += temp + "\n";
+
+				final boolean isXash = temp.equals("in.celest.xash3d.LauncherActivity");
+
+				Button v = new Button(this);
+				v.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+				v.setText(inf.loadLabel(getPackageManager()) + (isXash?" [no mod]":""));
+				v.setOnClickListener(new View.OnClickListener() {
+					String l = inf.activityInfo.name;
+					boolean b = isXash;
+					@Override
+					public void onClick(View view) {
+						//TODO: call launch action
+						Intent intent = new Intent();
+						intent.setAction("in.celest.xash3d.START");
+						intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+						String arguments = DedicatedActivity.autostarted?DedicatedActivity.autoArgv:DedicatedStatics.getArgv(getApplicationContext());
+
+						String temp2;
+
+						if (useHacks) temp2 = "-dev 3 +xashds_hacks 1 +rcon_address 127.0.0.1 +rcon_password "
+								+ CommandParser.parseSingleParameter(arguments, "+rcon_password");
+							else temp2 = "-dev 3 +connect localhost:27015";
+
+						intent.putExtra("argv", temp2);
+
+						temp2 = CommandParser.parseSingleParameter(arguments, "-game");
+						if (!temp2.equals("")) intent.putExtra("gamedir", temp2);
+
+						if (!isXash) try {
+							temp2 = getPackageManager().getPackageInfo(l.substring(0, l.lastIndexOf('.')), 0).applicationInfo.dataDir + "/lib";
+							intent.putExtra("gamelibdir", temp2);
+							startActivity(intent);
+						} catch (Exception e) { Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show(); return; }
+
+						startActivity(intent);
+						finish();
+					}
+				});
+				layout.addView(v);
 			}
-		});
-			
+		}
+
 		Button closeButton = new Button(this);
 		closeButton.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 		closeButton.setText(R.string.b_close);
@@ -67,79 +106,11 @@ public class ConnectActivity extends Activity
 					finish();
 				}
 			});
-			
-		layout.addView(xacksButton);
-		layout.addView(connectButton);
-		layout.addView(modLButton);
+
 		layout.addView(closeButton);
 		
 		setContentView(layout);
-	}
-	
-	public void startHacks() {
-		String arguments = DedicatedActivity.autostarted?DedicatedActivity.autoArgv:DedicatedStatics.getArgv(this);
-		
-		String game = CommandParser.parseSingleParameter(arguments, "-game");
-		Intent intent = new Intent();
-		intent.setAction("in.celest.xash3d.START");
-		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-		intent.putExtra("argv", "-dev 3 +xashds_hacks 1 +rcon_address 127.0.0.1 +rcon_password "+CommandParser.parseSingleParameter(arguments, "+rcon_password"));
-		if (!game.equals("")) intent.putExtra("gamedir", game);
-
-		startActivity(intent);
-	}
-
-	public void modL()
-	{
-		Intent newi = new Intent(ConnectActivity.this, ListActivity.class);
-		newi.putExtra("folder", ListActivity.REQUEST_MOD_SELECT);
-		startActivityForResult(newi, 1998);
-	}
-	
-	public void startConnect(){
-		String arguments = DedicatedActivity.autostarted?DedicatedActivity.autoArgv:DedicatedStatics.getArgv(this);
-
-		String game = CommandParser.parseSingleParameter(arguments, "-game");
-		Intent intent = new Intent();
-		intent.setAction("in.celest.xash3d.START");
-		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-		intent.putExtra("argv", "-dev 3 +connect localhost:27015");
-		if (!game.equals("")) intent.putExtra("gamedir", game);
-		
-		startActivity(intent);
-	}
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data)
-	{
-		if (requestCode == 1998) if (resultCode == RESULT_OK)
-		{
-			String result = data.getStringExtra("result");
-
-			String arguments = DedicatedActivity.autostarted?DedicatedActivity.autoArgv:DedicatedStatics.getArgv(this);
-			String temp = "-dev 3 +xashds_hacks 1 +rcon_address 127.0.0.1 +rcon_password "+CommandParser.parseSingleParameter(arguments, "+rcon_password");
-
-			Intent intent = new Intent();
-			intent.setAction("in.celest.xash3d.START");
-			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-			intent.putExtra("argv", temp);
-
-			temp = CommandParser.parseSingleParameter(arguments, "-game");String game = CommandParser.parseSingleParameter(arguments, "-game");
-			if (!game.equals("")) intent.putExtra("gamedir", temp);
-
-			try {
-				temp = getPackageManager().getPackageInfo(result.substring(0, result.lastIndexOf('.')), 0).applicationInfo.dataDir + "/lib";
-				//Toast.makeText(this, temp, Toast.LENGTH_LONG).show();
-				intent.putExtra("gamelibdir", temp);
-				startActivity(intent);
-			} catch (Exception e) { Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show(); return; }
-
-			/*//Toast.makeText(this, "Launching " + result.substring(0, result.lastIndexOf('.'))+"\n"+result, Toast.LENGTH_LONG).show();
-			intent.setComponent(new ComponentName(result.substring(0, result.lastIndexOf('.')), result));*/
-			finish();
-		}
+		getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 	}
 }

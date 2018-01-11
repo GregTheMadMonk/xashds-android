@@ -220,7 +220,7 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
 	private void updateAllPrefs(boolean reloadArgv)
 	{
 		//update argv
-		if (reloadArgv) argv = getSharedPreferences("dedicated", 0).getString("argv", "-dev 5 -dll dlls/hl.dll");
+		if (reloadArgv) argv = getSharedPreferences("dedicated", 0).getString("argv", "-dev 5 -dll dlls/hl.dll +rcon_password 0000");
 		//re-save preferences
 		getSharedPreferences("dedicated", 0).edit().
 				putString("s_game", CommandParser.parseSingleParameter(argv, "-game")).
