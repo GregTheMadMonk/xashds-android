@@ -1,6 +1,7 @@
 package in.celest.xash3d.dedicated;
 import android.app.*;
 import android.content.pm.ResolveInfo;
+import android.graphics.drawable.Drawable;
 import android.os.*;
 import android.widget.*;
 import android.widget.RelativeLayout.*;
@@ -21,12 +22,15 @@ public class ConnectActivity extends Activity
 		super.onCreate(savedInstanceState);
 		
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+		useHacks = CommandParser.parseLogicParameter(DedicatedStatics.getArgv(this), "+coop");
 		
 		LinearLayout layout = new LinearLayout(this);
 		layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		layout.setOrientation(LinearLayout.VERTICAL);
 
 		final Switch hacks = new Switch(this);
+		hacks.setChecked(useHacks);
 		hacks.setText(hacks.isChecked()?R.string.l_scut_gamem2:R.string.l_scut_gamem1);
 		hacks.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 		hacks.setOnClickListener(new View.OnClickListener() {
@@ -54,11 +58,19 @@ public class ConnectActivity extends Activity
 			{
 				s += temp + "\n";
 
-				final boolean isXash = temp.equals("in.celest.xash3d.LauncherActivity");
+				boolean t = false;
+				try { t = inf.activityInfo.applicationInfo.packageName.equals("in.celest.xash3d.hl")
+							|| inf.activityInfo.applicationInfo.packageName.equals("in.celest.xash3d.hl.test"); }
+					catch (Exception e) {Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show(); }
+
+				final boolean isXash = t;
 
 				Button v = new Button(this);
 				v.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 				v.setText(inf.loadLabel(getPackageManager()) + (isXash?" [no mod]":""));
+				Drawable ico = inf.loadIcon(getPackageManager());
+				ico.setBounds(0, 0, 60, 60);
+				v.setCompoundDrawables(ico, null, null, null);
 				v.setOnClickListener(new View.OnClickListener() {
 					String l = inf.activityInfo.name;
 					boolean b = isXash;
