@@ -451,6 +451,7 @@ public class DedicatedActivity extends Activity {
 				unpackAsset("xash_sse2");
 				unpackAsset("xash-old");
 				unpackAsset("start-translator.sh");
+				unpackAsset("start-x86.sh");
 				unpackAsset("tracker");
 				unpackAsset("qemu-i386-static");
 

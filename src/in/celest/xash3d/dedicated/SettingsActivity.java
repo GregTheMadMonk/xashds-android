@@ -3,7 +3,9 @@ import android.preference.*;
 import android.os.*;
 import android.content.*;
 import android.provider.Browser;
+import android.provider.Settings;
 import android.view.*;
+import android.widget.Toast;
 
 public class SettingsActivity extends PreferenceActivity implements Preference.OnPreferenceChangeListener
 {
@@ -78,7 +80,8 @@ public class SettingsActivity extends PreferenceActivity implements Preference.O
 		findPreference("s_rcon").setOnPreferenceChangeListener(this);
 		
 		ListPreference translators = (ListPreference) findPreference("translator");
-		if(System.getProperty("ro.product.cpu.abi") == "x86")
+
+		if(DedicatedStatics.isX86())
 		{
 			translators.setEntries(new String[]{"none"});
 			translators.setDefaultValue("0");

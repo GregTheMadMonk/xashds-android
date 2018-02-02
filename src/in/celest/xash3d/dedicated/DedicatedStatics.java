@@ -2,6 +2,7 @@ package in.celest.xash3d.dedicated;
 
 import java.util.*;
 import android.content.*;
+import android.widget.Toast;
 
 public class DedicatedStatics
 {
@@ -56,12 +57,16 @@ public class DedicatedStatics
 	
 	public static String getTranslator(Context context)
 	{
-		int i = Integer.valueOf(context.getSharedPreferences("dedicated", 0).getString("translator", "0"));
-		String[] t = DedicatedActivity.listTranslators();
-		if (i < t.length) return t[i];
-			else {
-				context.getSharedPreferences("dedicated", 0).edit().putString("translator", "0").commit();
-				return t[0];
+		if (isX86()) return "none";
+			else
+			{
+				int i = Integer.valueOf(context.getSharedPreferences("dedicated", 0).getString("translator", "0"));
+				String[] t = DedicatedActivity.listTranslators();
+				if (i < t.length) return t[i];
+				else {
+					context.getSharedPreferences("dedicated", 0).edit().putString("translator", "0").commit();
+					return t[0];
+				}
 			}
 	}
 	
@@ -73,5 +78,41 @@ public class DedicatedStatics
 	public static int getMaxLogLength(Context context)
 	{
 		return Integer.valueOf(context.getSharedPreferences("dedicated", 0).getString("a_maxloglines", "512"));
+	}
+
+	public static boolean isX86()
+	{
+		//copied from unused SteamService.java
+
+		String s = System.getProperty("ro.product.cpu.abi");
+
+		if( s != null && s.contains("x86"))
+			return true;
+
+		s = System.getProperty("ro.product.cpu.abi2");
+
+		if( s != null && s.contains("x86"))
+			return true;
+		s = System.getProperty("ro.product.cpu.abilist");
+
+		if( s != null && s.contains("x86"))
+			return true;
+
+		s = System.getProperty("ro.product.cpu.abilist32");
+
+		if( s != null && s.contains("x86"))
+			return true;
+
+		s = System.getProperty("ro.dalvik.vm.isa.arm");
+
+		if( s != null && s.contains("x86"))
+			return true;
+
+		s = System.getProperty("os.arch");
+
+		if (s != null && s.contains("86"))
+			return true;
+
+		return false;
 	}
 }

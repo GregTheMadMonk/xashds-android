@@ -151,7 +151,8 @@ public class DedicatedService extends Service {
             killAll(filesDir+"/ubt");
             if(translator.equals("none"))
             {
-                process = Runtime.getRuntime().exec("/system/bin/sh " + filesDir + "/start-x86.sh " + filesDir + " " + baseDir + " " + DedicatedStatics.XASH_BINARY_SSE + " " + cmdArgs);
+                process = Runtime.getRuntime().exec(filesDir + "/" + DedicatedStatics.XASH_BINARY_SSE + " " + cmdArgs + " XASH3D_BASEDIR=" + baseDir);
+                //process = Runtime.getRuntime().exec("/system/bin/sh " + filesDir + "/start-x86.sh " + filesDir + " " + baseDir + " " + DedicatedStatics.XASH_BINARY_SSE + " " + cmdArgs);
             }
             else
             if(translator.equals("qemu"))
