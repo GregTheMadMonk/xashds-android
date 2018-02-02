@@ -20,6 +20,8 @@ public class ConsoleView extends View
 	private static ConsoleView highlighted = null;
 
 	private float h, w;
+
+	private int y0 = 20;
 	
 	ConsoleView(Context context)
 	{
@@ -43,8 +45,8 @@ public class ConsoleView extends View
 		canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bg);
 		
 		//paint strings from last
-		int y = 20;
-		int deltay = 20;
+		int y = y0;
+		int deltay = y0;
 		String current;
 		for (int i = strings.size()-scrollindex; i >= 0; i--)
 		{
@@ -174,8 +176,12 @@ public class ConsoleView extends View
 	{
 		w = ((WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getWidth();
 		
-		int y = 20;
-		int deltay = 20;
+		int y = ((WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getHeight() / 40;
+		int deltay = y;
+		y0 = y;
+
+		basictext.setTextSize(y);
+
 		String current;
 		for (int i = strings.size()-scrollindex; i >= 0; i--)
 		{
@@ -221,7 +227,7 @@ public class ConsoleView extends View
 			y += deltay;
 		}
 		
-		setMinimumHeight(y - deltay/2);
+		setMinimumHeight(y - deltay / 2);
 		
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 	}
