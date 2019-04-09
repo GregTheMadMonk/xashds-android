@@ -1,4 +1,5 @@
 # XashDS Android - fork of FWGS's *xashds-android*
+## Project is frozen! I'm not working on it anymore. No one seems to show interest in it. If you somehow are still using the app and have problems, you can always mail me or open an issue, I will try to help you despite I don't think I remember too much about what does what here.
 Android dedicated server with x86 dynamic translator and dll support [**custom modification**].
 ![Logo](res/drawable/logo.png)
 ## Current version - v1.2-forked (_Testing: v1.3-forked-beta_)
